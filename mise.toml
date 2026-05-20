@@ -1,0 +1,32 @@
+[tools]
+go = "1.26"
+
+[env]
+GOTOOLCHAIN = "auto"
+GO111MODULE = "on"
+
+[tasks.build]
+description = "Build the buddy binary"
+run = "go build -trimpath -ldflags='-s -w' -o bin/buddy ."
+
+[tasks.test]
+description = "Run all tests"
+run = "go test ./..."
+
+[tasks.dev]
+description = "Run the server locally (auto-detects the Docker socket via `docker context`)"
+run = """
+{% raw %}
+export DOCKER_HOST="$(docker context inspect --format '{{.Endpoints.docker.Host}}')"
+{% endraw %}
+export DNS_PORT="${DNS_PORT:-5553}"
+exec go run .
+"""
+
+[tasks.tidy]
+description = "Tidy Go modules"
+run = "go mod tidy"
+
+[tasks.docker-build]
+description = "Build the Docker image"
+run = "docker build -t buddy:dev ."

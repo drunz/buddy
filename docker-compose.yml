@@ -1,0 +1,11 @@
+services:
+  buddy:
+    image: ghcr.io/YOUR_GITHUB_USERNAME/buddy:latest
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
