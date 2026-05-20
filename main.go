@@ -16,17 +16,29 @@ func main() {
 	cfg := LoadConfig()
 	log := newLogger(cfg.LogLevel)
 
+	hostIP := ""
+	if cfg.PublishIP == "host" {
+		ip, err := ResolveHostIP(cfg.HostIP, cfg.DockerHost)
+		if err != nil || ip == "" {
+			log.Error("PUBLISH_IP=host but host IP could not be resolved; set HOST_IP", "err", err)
+			os.Exit(1)
+		}
+		hostIP = ip
+	}
+
 	log.Info("starting buddy",
 		"port", cfg.DNSPort,
 		"zone", cfg.DNSZone,
 		"ttl", cfg.DNSTTL,
 		"docker_host", cfg.DockerHost,
 		"label_prefix", cfg.CaddyLabelPrefix,
+		"publish_ip", cfg.PublishIP,
+		"host_ip", hostIP,
 	)
 
 	resolver := NewResolver(cfg.DNSZone, cfg.DNSTTL, log)
 
-	watcher, err := NewDockerWatcher(cfg.DockerHost, cfg.CaddyLabelPrefix, cfg.DNSZone, resolver, log)
+	watcher, err := NewDockerWatcher(cfg.DockerHost, cfg.CaddyLabelPrefix, cfg.DNSZone, cfg.PublishIP, hostIP, resolver, log)
 	if err != nil {
 		log.Error("failed to connect to docker", "err", err)
 		os.Exit(1)

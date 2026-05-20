@@ -23,9 +23,11 @@ type DockerWatcher struct {
 	zone        string
 	resolver    *Resolver
 	log         *slog.Logger
+	publishIP   string // "host" or "container"
+	hostIP      string // resolved host IP, used when publishIP == "host"
 }
 
-func NewDockerWatcher(dockerHost, labelPrefix, zone string, resolver *Resolver, log *slog.Logger) (*DockerWatcher, error) {
+func NewDockerWatcher(dockerHost, labelPrefix, zone, publishIP, hostIP string, resolver *Resolver, log *slog.Logger) (*DockerWatcher, error) {
 	cli, err := client.NewClientWithOpts(
 		client.WithHost(dockerHost),
 		client.WithAPIVersionNegotiation(),
@@ -45,6 +47,8 @@ func NewDockerWatcher(dockerHost, labelPrefix, zone string, resolver *Resolver, 
 		zone:        zone,
 		resolver:    resolver,
 		log:         log,
+		publishIP:   publishIP,
+		hostIP:      hostIP,
 	}, nil
 }
 
@@ -133,7 +137,15 @@ func (d *DockerWatcher) resync(ctx context.Context) error {
 			continue
 		}
 
-		ip, err := d.containerIP(ctx, c.ID)
+		var (
+			ip  string
+			err error
+		)
+		if d.publishIP == "host" {
+			ip = d.hostIP
+		} else {
+			ip, err = d.containerIP(ctx, c.ID)
+		}
 		if err != nil || ip == "" {
 			d.log.Warn("container has caddy label but no resolvable IP",
 				"id", shortID(c.ID), "name", containerName(c.Names), "err", err)

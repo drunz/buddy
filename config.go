@@ -13,6 +13,8 @@ type Config struct {
 	DockerHost       string
 	CaddyLabelPrefix string
 	LogLevel         string
+	PublishIP        string // "host" or "container"
+	HostIP           string // explicit override; empty means auto-resolve
 }
 
 func LoadConfig() Config {
@@ -26,6 +28,11 @@ func LoadConfig() Config {
 		zone += "."
 	}
 
+	publish := strings.ToLower(getenv("PUBLISH_IP", "host"))
+	if publish != "host" && publish != "container" {
+		publish = "host"
+	}
+
 	return Config{
 		DNSPort:          getenv("DNS_PORT", "53"),
 		DNSZone:          zone,
@@ -33,6 +40,8 @@ func LoadConfig() Config {
 		DockerHost:       getenv("DOCKER_HOST", "unix:///var/run/docker.sock"),
 		CaddyLabelPrefix: getenv("CADDY_LABEL_PREFIX", "caddy"),
 		LogLevel:         strings.ToLower(getenv("LOG_LEVEL", "info")),
+		PublishIP:        publish,
+		HostIP:           getenv("HOST_IP", ""),
 	}
 }
 
