@@ -23,9 +23,9 @@ func LoadConfig() Config {
 		ttl = 30
 	}
 
-	publish := strings.ToLower(getenv("PUBLISH_IP", "host"))
+	publish := strings.ToLower(getenv("PUBLISH_IP", "container"))
 	if publish != "host" && publish != "container" {
-		publish = "host"
+		publish = "container"
 	}
 
 	return Config{

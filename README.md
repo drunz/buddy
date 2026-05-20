@@ -29,7 +29,7 @@ and serves it as an A record over UDP and TCP on port 53.
 | `DOCKER_HOST`        | `unix:///var/run/docker.sock` | Docker socket path   |
 | `CADDY_LABEL_PREFIX` | `caddy`                       | Label prefix to scan |
 | `LOG_LEVEL`          | `info`                        | `info` or `debug`    |
-| `PUBLISH_IP`         | `host`                        | `host` returns the docker host's LAN IP (reachable from other machines); `container` returns the container's bridge IP (only reachable on the host itself) |
+| `PUBLISH_IP`         | `container`                   | `container` returns the container's bridge IP (only reachable on the host itself); `host` returns the docker host's LAN IP (reachable from other machines) |
 | `HOST_IP`            | _(auto)_                      | Override for the host IP when `PUBLISH_IP=host`. If unset, resolved from `DOCKER_HOST` (if `tcp://`) or the default outbound interface |
 
 ## Local development
