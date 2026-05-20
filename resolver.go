@@ -26,8 +26,8 @@ func NewResolver(zone string, ttl uint32, log *slog.Logger) *Resolver {
 }
 
 // fqdnFromLabel parses a caddy label value into a fully qualified DNS name
-// within the given zone. Strips ports and appends the zone if missing.
-// Returns "" if the label cannot produce a valid hostname.
+// within the given zone. Strips ports; bare hostnames get the zone appended.
+// Returns "" if the label is empty or names a host outside the zone.
 func fqdnFromLabel(label, zone string) string {
 	v := strings.TrimSpace(label)
 	if v == "" {
@@ -48,10 +48,14 @@ func fqdnFromLabel(label, zone string) string {
 	lowerZone := strings.ToLower(zoneTrim)
 
 	var fqdn string
-	if lowerV == lowerZone || strings.HasSuffix(lowerV, "."+lowerZone) {
+	switch {
+	case lowerV == lowerZone || strings.HasSuffix(lowerV, "."+lowerZone):
 		fqdn = v + "."
-	} else {
+	case !strings.Contains(v, "."):
 		fqdn = v + "." + zoneTrim + "."
+	default:
+		// Dotted name outside the configured zone — don't publish it.
+		return ""
 	}
 	return strings.ToLower(fqdn)
 }
