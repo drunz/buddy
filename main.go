@@ -28,7 +28,7 @@ func main() {
 
 	log.Info("starting buddy",
 		"port", cfg.DNSPort,
-		"zone", cfg.DNSZone,
+		"zones", cfg.DNSZones,
 		"ttl", cfg.DNSTTL,
 		"docker_host", cfg.DockerHost,
 		"label_prefix", cfg.CaddyLabelPrefix,
@@ -36,9 +36,9 @@ func main() {
 		"host_ip", hostIP,
 	)
 
-	resolver := NewResolver(cfg.DNSZone, cfg.DNSTTL, log)
+	resolver := NewResolver(cfg.DNSTTL, log)
 
-	watcher, err := NewDockerWatcher(cfg.DockerHost, cfg.CaddyLabelPrefix, cfg.DNSZone, cfg.PublishIP, hostIP, resolver, log)
+	watcher, err := NewDockerWatcher(cfg.DockerHost, cfg.CaddyLabelPrefix, cfg.DNSZones, cfg.PublishIP, hostIP, resolver, log)
 	if err != nil {
 		log.Error("failed to connect to docker", "err", err)
 		os.Exit(1)
@@ -49,7 +49,13 @@ func main() {
 	defer cancel()
 
 	mux := dns.NewServeMux()
-	mux.HandleFunc(cfg.DNSZone, resolver.Handle)
+	if len(cfg.DNSZones) == 0 {
+		mux.HandleFunc(".", resolver.Handle)
+	} else {
+		for _, z := range cfg.DNSZones {
+			mux.HandleFunc(z, resolver.Handle)
+		}
+	}
 
 	udpServer := &dns.Server{Addr: ":" + cfg.DNSPort, Net: "udp", Handler: mux}
 	tcpServer := &dns.Server{Addr: ":" + cfg.DNSPort, Net: "tcp", Handler: mux}

@@ -11,29 +11,32 @@ import (
 type Resolver struct {
 	mu      sync.RWMutex
 	records map[string]string
-	zone    string
 	ttl     uint32
 	log     *slog.Logger
 }
 
-func NewResolver(zone string, ttl uint32, log *slog.Logger) *Resolver {
+func NewResolver(ttl uint32, log *slog.Logger) *Resolver {
 	return &Resolver{
 		records: make(map[string]string),
-		zone:    zone,
 		ttl:     ttl,
 		log:     log,
 	}
 }
 
-// fqdnFromLabel parses a caddy label value into a fully qualified DNS name
-// within the given zone. Strips ports; bare hostnames get the zone appended.
-// Returns "" if the label is empty or names a host outside the zone.
-func fqdnFromLabel(label, zone string) string {
+// fqdnFromLabel parses a caddy label value into a fully qualified DNS name.
+// Strips ports.
+//
+// If zones is non-empty, the label must fall within one of the zones: a bare
+// hostname gets the first zone appended; a dotted name must equal or be a
+// subdomain of one of the zones, otherwise "" is returned.
+//
+// If zones is empty, no filter is applied: the label is published verbatim
+// (with a trailing dot).
+func fqdnFromLabel(label string, zones []string) string {
 	v := strings.TrimSpace(label)
 	if v == "" {
 		return ""
 	}
-	// Strip everything after the first colon (port).
 	if idx := strings.Index(v, ":"); idx >= 0 {
 		v = v[:idx]
 	}
@@ -43,21 +46,23 @@ func fqdnFromLabel(label, zone string) string {
 		return ""
 	}
 
-	zoneTrim := strings.TrimSuffix(zone, ".")
 	lowerV := strings.ToLower(v)
-	lowerZone := strings.ToLower(zoneTrim)
 
-	var fqdn string
-	switch {
-	case lowerV == lowerZone || strings.HasSuffix(lowerV, "."+lowerZone):
-		fqdn = v + "."
-	case !strings.Contains(v, "."):
-		fqdn = v + "." + zoneTrim + "."
-	default:
-		// Dotted name outside the configured zone — don't publish it.
-		return ""
+	if len(zones) == 0 {
+		return lowerV + "."
 	}
-	return strings.ToLower(fqdn)
+
+	for _, z := range zones {
+		zoneTrim := strings.ToLower(strings.TrimSuffix(z, "."))
+		if lowerV == zoneTrim || strings.HasSuffix(lowerV, "."+zoneTrim) {
+			return lowerV + "."
+		}
+	}
+	if !strings.Contains(v, ".") {
+		first := strings.TrimSuffix(zones[0], ".")
+		return lowerV + "." + strings.ToLower(first) + "."
+	}
+	return ""
 }
 
 // Sync replaces the current records with the desired set, logging

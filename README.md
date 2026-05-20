@@ -9,9 +9,9 @@ and serves it as an A record over UDP and TCP on port 53.
 
 ## Features
 
-- Authoritative for a single zone (default `local.lan.`)
+- Authoritative for one or more zones (default `local.lan.`); can be unfiltered
 - Parses `caddy[.N]` labels, strips ports (`myapp.local.lan:80` → `myapp.local.lan`)
-- Appends the zone if the label doesn't already end with it
+- Appends the first zone if a bare hostname label doesn't already match any zone
 - Watches Docker `start` / `die` / `stop` / `destroy` events and re-syncs in real time
 - Reconnects to the event stream with exponential backoff (max 30s)
 - Logs every record add / remove
@@ -24,7 +24,7 @@ and serves it as an A record over UDP and TCP on port 53.
 | Variable             | Default                       | Description          |
 | -------------------- | ----------------------------- | -------------------- |
 | `DNS_PORT`           | `53`                          | Port to listen on    |
-| `DNS_ZONE`           | `local.lan.`                  | Zone to serve        |
+| `DNS_ZONES`          | `local.lan.`                  | Comma-separated list of zones to serve. Labels matching any zone are published; bare hostnames get the first zone appended. Set to empty (`DNS_ZONES=`) to disable the zone filter — every caddy label is published verbatim and the server answers for `.` |
 | `DNS_TTL`            | `30`                          | TTL in seconds       |
 | `DOCKER_HOST`        | `unix:///var/run/docker.sock` | Docker socket path   |
 | `CADDY_LABEL_PREFIX` | `caddy`                       | Label prefix to scan |

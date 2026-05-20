@@ -20,14 +20,14 @@ import (
 type DockerWatcher struct {
 	cli         *client.Client
 	labelPrefix string
-	zone        string
+	zones       []string
 	resolver    *Resolver
 	log         *slog.Logger
 	publishIP   string // "host" or "container"
 	hostIP      string // resolved host IP, used when publishIP == "host"
 }
 
-func NewDockerWatcher(dockerHost, labelPrefix, zone, publishIP, hostIP string, resolver *Resolver, log *slog.Logger) (*DockerWatcher, error) {
+func NewDockerWatcher(dockerHost, labelPrefix string, zones []string, publishIP, hostIP string, resolver *Resolver, log *slog.Logger) (*DockerWatcher, error) {
 	cli, err := client.NewClientWithOpts(
 		client.WithHost(dockerHost),
 		client.WithAPIVersionNegotiation(),
@@ -44,7 +44,7 @@ func NewDockerWatcher(dockerHost, labelPrefix, zone, publishIP, hostIP string, r
 	return &DockerWatcher{
 		cli:         cli,
 		labelPrefix: labelPrefix,
-		zone:        zone,
+		zones:       zones,
 		resolver:    resolver,
 		log:         log,
 		publishIP:   publishIP,
@@ -167,7 +167,7 @@ func (d *DockerWatcher) hostsFromLabels(labels map[string]string) []string {
 		if !labelMatches(k, d.labelPrefix) {
 			continue
 		}
-		fq := fqdnFromLabel(v, d.zone)
+		fq := fqdnFromLabel(v, d.zones)
 		if fq == "" {
 			continue
 		}

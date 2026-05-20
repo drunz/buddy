@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	DNSPort          string
-	DNSZone          string
+	DNSZones         []string // empty means no zone filter
 	DNSTTL           uint32
 	DockerHost       string
 	CaddyLabelPrefix string
@@ -23,11 +23,6 @@ func LoadConfig() Config {
 		ttl = 30
 	}
 
-	zone := getenv("DNS_ZONE", "local.lan.")
-	if !strings.HasSuffix(zone, ".") {
-		zone += "."
-	}
-
 	publish := strings.ToLower(getenv("PUBLISH_IP", "host"))
 	if publish != "host" && publish != "container" {
 		publish = "host"
@@ -35,7 +30,7 @@ func LoadConfig() Config {
 
 	return Config{
 		DNSPort:          getenv("DNS_PORT", "53"),
-		DNSZone:          zone,
+		DNSZones:         loadZones(),
 		DNSTTL:           uint32(ttl),
 		DockerHost:       getenv("DOCKER_HOST", "unix:///var/run/docker.sock"),
 		CaddyLabelPrefix: getenv("CADDY_LABEL_PREFIX", "caddy"),
@@ -43,6 +38,29 @@ func LoadConfig() Config {
 		PublishIP:        publish,
 		HostIP:           getenv("HOST_IP", ""),
 	}
+}
+
+// loadZones parses DNS_ZONES as a comma-separated list of zones. If the env
+// var is unset, it defaults to "local.lan.". If set to an empty (or
+// whitespace-only) string, returns an empty slice — meaning no zone filter is
+// applied to caddy labels.
+func loadZones() []string {
+	raw, ok := os.LookupEnv("DNS_ZONES")
+	if !ok {
+		return []string{"local.lan."}
+	}
+	var zones []string
+	for _, z := range strings.Split(raw, ",") {
+		z = strings.TrimSpace(z)
+		if z == "" {
+			continue
+		}
+		if !strings.HasSuffix(z, ".") {
+			z += "."
+		}
+		zones = append(zones, z)
+	}
+	return zones
 }
 
 func getenv(key, def string) string {

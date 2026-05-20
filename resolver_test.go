@@ -13,29 +13,41 @@ func TestFqdnFromLabel(t *testing.T) {
 	tests := []struct {
 		name  string
 		label string
-		zone  string
+		zones []string
 		want  string
 	}{
-		{"simple host", "myapp", "local.lan.", "myapp.local.lan."},
-		{"host with port", "myapp:80", "local.lan.", "myapp.local.lan."},
-		{"fqdn with zone suffix", "myapp.local.lan", "local.lan.", "myapp.local.lan."},
-		{"fqdn with zone and port", "myapp.local.lan:8080", "local.lan.", "myapp.local.lan."},
-		{"dotted out of zone dropped", "api.myapp", "local.lan.", ""},
-		{"subdomain in zone", "api.myapp.local.lan", "local.lan.", "api.myapp.local.lan."},
-		{"explicit out of zone fqdn dropped", "foo.example.com", "local.lan.", ""},
-		{"trailing dot", "myapp.local.lan.", "local.lan.", "myapp.local.lan."},
-		{"uppercase normalized", "MyApp.Local.LAN", "local.lan.", "myapp.local.lan."},
-		{"empty", "", "local.lan.", ""},
-		{"whitespace", "   ", "local.lan.", ""},
-		{"only port", ":80", "local.lan.", ""},
-		{"zone equals host", "local.lan", "local.lan.", "local.lan."},
-		{"different zone", "myapp", "example.com.", "myapp.example.com."},
+		{"simple host", "myapp", []string{"local.lan."}, "myapp.local.lan."},
+		{"host with port", "myapp:80", []string{"local.lan."}, "myapp.local.lan."},
+		{"fqdn with zone suffix", "myapp.local.lan", []string{"local.lan."}, "myapp.local.lan."},
+		{"fqdn with zone and port", "myapp.local.lan:8080", []string{"local.lan."}, "myapp.local.lan."},
+		{"dotted out of zone dropped", "api.myapp", []string{"local.lan."}, ""},
+		{"subdomain in zone", "api.myapp.local.lan", []string{"local.lan."}, "api.myapp.local.lan."},
+		{"explicit out of zone fqdn dropped", "foo.example.com", []string{"local.lan."}, ""},
+		{"trailing dot", "myapp.local.lan.", []string{"local.lan."}, "myapp.local.lan."},
+		{"uppercase normalized", "MyApp.Local.LAN", []string{"local.lan."}, "myapp.local.lan."},
+		{"empty", "", []string{"local.lan."}, ""},
+		{"whitespace", "   ", []string{"local.lan."}, ""},
+		{"only port", ":80", []string{"local.lan."}, ""},
+		{"zone equals host", "local.lan", []string{"local.lan."}, "local.lan."},
+		{"different zone", "myapp", []string{"example.com."}, "myapp.example.com."},
+
+		// Multiple zones: match any.
+		{"multi-zone first match", "myapp.local.lan", []string{"local.lan.", "example.com."}, "myapp.local.lan."},
+		{"multi-zone second match", "api.example.com", []string{"local.lan.", "example.com."}, "api.example.com."},
+		{"multi-zone bare uses first", "myapp", []string{"local.lan.", "example.com."}, "myapp.local.lan."},
+		{"multi-zone dotted out of all dropped", "foo.other.test", []string{"local.lan.", "example.com."}, ""},
+
+		// No zone filter: publish verbatim.
+		{"no zones bare", "myapp", nil, "myapp."},
+		{"no zones dotted", "foo.example.com", nil, "foo.example.com."},
+		{"no zones with port", "foo.example.com:443", nil, "foo.example.com."},
+		{"no zones empty label", "", nil, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := fqdnFromLabel(tt.label, tt.zone)
+			got := fqdnFromLabel(tt.label, tt.zones)
 			if got != tt.want {
-				t.Errorf("fqdnFromLabel(%q,%q) = %q, want %q", tt.label, tt.zone, got, tt.want)
+				t.Errorf("fqdnFromLabel(%q,%v) = %q, want %q", tt.label, tt.zones, got, tt.want)
 			}
 		})
 	}
@@ -67,7 +79,7 @@ func TestLabelMatches(t *testing.T) {
 
 func newTestResolver() *Resolver {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewResolver("local.lan.", 30, log)
+	return NewResolver(30, log)
 }
 
 func TestResolverSyncAddRemove(t *testing.T) {
