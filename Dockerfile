@@ -22,8 +22,6 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder /out/buddy /buddy
 
-USER 65534:65534
-
 EXPOSE 53/udp
 EXPOSE 53/tcp
 
