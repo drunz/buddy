@@ -13,24 +13,21 @@ and serves it as an A record over UDP and TCP on port 53.
 - Parses `caddy[.N]` labels, strips ports (`myapp.local.lan:80` → `myapp.local.lan`)
 - Appends the first zone if a bare hostname label doesn't already match any zone
 - Watches Docker `start` / `die` / `stop` / `destroy` events and re-syncs in real time
-- Reconnects to the event stream with exponential backoff (max 30s)
-- Logs every record add / remove
-- Concurrency-safe records map (`sync.RWMutex`)
 - Returns `NXDOMAIN` for unknown names, `SERVFAIL` on panics
 - All responses set the Authoritative flag, TTL 30s
 
 ## Configuration
 
-| Variable             | Default                       | Description          |
-| -------------------- | ----------------------------- | -------------------- |
-| `DNS_PORT`           | `53`                          | Port to listen on    |
+| Variable             | Default                       | Description                                                                                                                                                                                                                                                 |
+| -------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DNS_PORT`           | `53`                          | Port to listen on                                                                                                                                                                                                                                           |
 | `DNS_ZONES`          | `local.lan.`                  | Comma-separated list of zones to serve. Labels matching any zone are published; bare hostnames get the first zone appended. Set to empty (`DNS_ZONES=`) to disable the zone filter — every caddy label is published verbatim and the server answers for `.` |
-| `DNS_TTL`            | `30`                          | TTL in seconds       |
-| `DOCKER_HOST`        | `unix:///var/run/docker.sock` | Docker socket path   |
-| `CADDY_LABEL_PREFIX` | `caddy`                       | Label prefix to scan |
-| `LOG_LEVEL`          | `info`                        | `info` or `debug`    |
-| `PUBLISH_IP`         | `container`                   | `container` returns the container's bridge IP (only reachable on the host itself); `host` returns the docker host's LAN IP (reachable from other machines) |
-| `HOST_IP`            | _(auto)_                      | Override for the host IP when `PUBLISH_IP=host`. If unset, resolved from `DOCKER_HOST` (if `tcp://`) or the default outbound interface |
+| `DNS_TTL`            | `30`                          | TTL in seconds                                                                                                                                                                                                                                              |
+| `DOCKER_HOST`        | `unix:///var/run/docker.sock` | Docker socket path                                                                                                                                                                                                                                          |
+| `CADDY_LABEL_PREFIX` | `caddy`                       | Label prefix to scan                                                                                                                                                                                                                                        |
+| `LOG_LEVEL`          | `info`                        | `info` or `debug`                                                                                                                                                                                                                                           |
+| `PUBLISH_IP`         | `container`                   | `container` returns the container's bridge IP (only reachable on the host itself); `host` returns the docker host's LAN IP (reachable from other machines)                                                                                                  |
+| `HOST_IP`            | _(auto)_                      | Override for the host IP when `PUBLISH_IP=host`. If unset, resolved from `DOCKER_HOST` (if `tcp://`) or the default outbound interface                                                                                                                      |
 
 ## Local development
 
@@ -71,9 +68,3 @@ caddy.0: api.local.lan:80
 ```
 
 become DNS-resolvable as `myapp.local.lan` and `api.local.lan`.
-
-## CI / publishing
-
-`.github/workflows/build.yml` runs tests on every push/PR and, on pushes to
-`main` or version tags (`v*.*.*`), publishes a multi-arch image
-(`linux/amd64`, `linux/arm64`) to `ghcr.io/<owner>/<repo>`.

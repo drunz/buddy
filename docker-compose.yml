@@ -1,6 +1,6 @@
 services:
   buddy:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/buddy:latest
+    image: ghcr.io/drunz/buddy:latest
     ports:
       - "53:53/udp"
       - "53:53/tcp"
